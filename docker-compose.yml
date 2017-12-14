@@ -1,0 +1,45 @@
+master:
+  image: p7hb/docker-spark:2.1.1
+  command: /usr/local/spark/bin/spark-class org.apache.spark.deploy.master.Master
+  volumes:
+    - ./sbt-application/target/scala-2.11:/app
+  ports:
+   - 8080:8080
+   - 7077:7077
+   - 6066:6066
+  environment:
+      - SPARK_PUBLIC_DNS=localhost
+slave:
+  image: p7hb/docker-spark:2.1.1
+  command: /usr/local/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://master:7077
+  ports:
+   - 4040:4040
+   - 8081:8081
+  links:
+   - master
+  volumes:
+    - ./sbt-application/target/scala-2.11:/app
+    - ./pipeline:/pipeline
+  environment:
+      - mongo_connection_string
+      - SPARK_PUBLIC_DNS=localhost
+      - SPARK_WORKER_MEMORY=2g
+application:
+  image: p7hb/docker-spark:2.1.1
+  command: spark-submit --class "NOTAMAnalytics" --deploy-mode cluster --master spark://master:6066  file:/app/spark-app.jar 100
+  links:
+   - master
+  volumes:
+    - ./sbt-application/target/scala-2.11:/app
+  environment:
+      - mongo_connection_string
+      - SPARK_PUBLIC_DNS=localhost
+hello-world:
+  image: p7hb/docker-spark:2.1.1
+  command: spark-submit --class "HelloWorld" --deploy-mode cluster --master spark://master:6066  file:/app/spark-app.jar
+  links:
+   - master
+  volumes:
+    - ./sbt-application/target/scala-2.11:/app
+  environment:
+      - SPARK_PUBLIC_DNS=localhost
